@@ -1,0 +1,32 @@
+# Terraform
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+*.tfvars
+*.tfplan
+tfplan
+destroy-plan
+
+# Environment files (removed in migration)
+.env
+.env.local
+
+# Outputs (generated dynamically, not committed)
+infrastructure-outputs.json
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+
+# Demo project sanitization log
+SANITIZATION_LOG.md

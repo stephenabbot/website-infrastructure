@@ -1,0 +1,109 @@
+name: Deploy Infrastructure
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type "deploy" to confirm deployment'
+        required: true
+        type: string
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: us-east-1
+  TOFU_VERSION: 1.10.7
+
+jobs:
+  deploy:
+    name: Deploy Static Website Infrastructure
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Validate confirmation
+        run: |
+          if [ "${{ github.event.inputs.confirm }}" != "deploy" ]; then
+            echo "Deployment not confirmed. Please type 'deploy' to confirm."
+            exit 1
+          fi
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Debug OIDC Configuration
+        run: |
+          echo "=== OIDC DEBUG INFO ==="
+          echo "AWS_ACCOUNT_ID: ${{ vars.AWS_ACCOUNT_ID }}"
+          echo "Repository: ${{ github.repository }}"
+          echo "Expected role: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/gharole-website-infrastructure-prd"
+          echo "GitHub token issuer: $ACTIONS_ID_TOKEN_REQUEST_TOKEN"
+          echo "GitHub token URL: $ACTIONS_ID_TOKEN_REQUEST_URL"
+          
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/gharole-website-infrastructure-prd
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: website-infrastructure-deploy-${{ github.run_id }}
+          role-duration-seconds: 3600
+
+      - name: Verify AWS identity
+        run: |
+          echo "Verifying AWS credentials..."
+          aws sts get-caller-identity
+          echo "AWS credentials configured successfully"
+
+      - name: Install OpenTofu
+        uses: opentofu/setup-opentofu@v1
+        with:
+          tofu_version: ${{ env.TOFU_VERSION }}
+
+      - name: Get backend configuration from SSM
+        id: backend
+        run: |
+          STATE_BUCKET=$(aws ssm get-parameter --region us-east-1 --name "/terraform/foundation/s3-state-bucket" --query Parameter.Value --output text)
+          DYNAMODB_TABLE=$(aws ssm get-parameter --region us-east-1 --name "/terraform/foundation/dynamodb-lock-table" --query Parameter.Value --output text)
+          GITHUB_REPO=$(echo "${{ github.repository }}" | tr '/' '-')
+          BACKEND_KEY="static-website-infrastructure/${GITHUB_REPO}/terraform.tfstate"
+          
+          echo "state_bucket=$STATE_BUCKET" >> $GITHUB_OUTPUT
+          echo "dynamodb_table=$DYNAMODB_TABLE" >> $GITHUB_OUTPUT
+          echo "backend_key=$BACKEND_KEY" >> $GITHUB_OUTPUT
+          echo "Backend configuration retrieved:"
+          echo "  Bucket: $STATE_BUCKET"
+          echo "  DynamoDB: $DYNAMODB_TABLE"
+          echo "  Key: $BACKEND_KEY"
+
+      - name: Initialize OpenTofu
+        run: |
+          tofu init \
+            -backend-config="bucket=${{ steps.backend.outputs.state_bucket }}" \
+            -backend-config="key=${{ steps.backend.outputs.backend_key }}" \
+            -backend-config="region=us-east-1" \
+            -backend-config="dynamodb_table=${{ steps.backend.outputs.dynamodb_table }}" \
+            -reconfigure
+
+      - name: Plan deployment
+        run: tofu plan -out=tfplan
+
+      - name: Apply deployment
+        run: tofu apply -auto-approve tfplan
+
+      - name: Generate and store outputs
+        run: |
+          tofu output -json > infrastructure-outputs.json
+
+          if [ -f infrastructure-outputs.json ]; then
+            jq -r '.deployed_domains.value | to_entries[] | "\(.value.domain_name)"' infrastructure-outputs.json | while read -r domain_name; do
+              echo "Deployed domain: ${domain_name}"
+            done
+          fi
+
+      - name: Upload outputs artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: infrastructure-outputs
+          path: infrastructure-outputs.json
+          retention-days: 30
