@@ -79,7 +79,7 @@ For detailed prerequisites, see [prerequisites guide](https://github.com/stephen
 - **Deploy Infrastructure** - OIDC-authenticated deployment triggered manually or on push
 - **Destroy Infrastructure** - OIDC-authenticated destruction with confirmation requirement
 
-Current deployed domains: stephenabbot.com, denverbites.com, denverbytes.com, bittikens.com
+Current deployed domains: denverbites.com, denverbytes.com, bittikens.com
 
 ## AWS Well-Architected Framework
 

@@ -17,6 +17,7 @@ Search engines treat `example.com` and `www.example.com` as completely separate 
 This infrastructure implements **non-WWW canonical domains** as the industry best practice for modern websites:
 
 #### Why Non-WWW?
+
 - **Shorter URLs**: Cleaner, more memorable domain names
 - **Modern Standard**: Most new websites use apex domains as canonical
 - **Mobile Friendly**: Shorter URLs work better on mobile devices
@@ -25,6 +26,7 @@ This infrastructure implements **non-WWW canonical domains** as the industry bes
 #### Technical Implementation
 
 **CloudFront Function (Edge-Level Redirect)**
+
 ```javascript
 // Executes at CloudFront edge locations worldwide
 if (host.startsWith('www.')) {
@@ -40,31 +42,37 @@ if (host.startsWith('www.')) {
 ```
 
 **DNS Configuration**
+
 ```
 denverbytes.com.        A       13.226.251.129  (CloudFront IPs)
 www.denverbytes.com.    CNAME   denverbytes.com.
 ```
 
 **SSL Certificate Coverage**
+
 - Primary: `denverbytes.com`
 - Subject Alternative Name: `www.denverbytes.com`
 
 ### Typo Domain Protection
 
 #### Brand Protection Strategy
+
 This implementation includes protection against common typos that could confuse users or be exploited by competitors:
 
 **Protected Typo Domains**
+
 - `denverbites.com` → `denverbytes.com` (common phonetic spelling)
 - `www.denverbites.com` → `denverbytes.com` (www variant of typo)
 
 **Implementation Benefits**
+
 - **User Experience**: Visitors who mistype the domain still reach the correct site
 - **Brand Protection**: Prevents competitors from registering typo domains
 - **SEO Consolidation**: All typo traffic redirects to canonical domain
 - **Verbal Direction**: When saying "denver-bytes" aloud, listeners might hear "denver-bites"
 
 **Cost Analysis**
+
 - Domain registration: ~$12/year per typo domain
 - Infrastructure: Minimal (same CloudFront function handles redirects)
 - Maintenance: Zero additional operational overhead
@@ -72,6 +80,7 @@ This implementation includes protection against common typos that could confuse 
 ### SEO Impact Measurement
 
 #### Before Canonicalization
+
 ```
 Site Authority Split:
 ├── denverbytes.com (50% authority)
@@ -84,6 +93,7 @@ Search Results:
 ```
 
 #### After Canonicalization
+
 ```
 Consolidated Authority:
 └── denverbytes.com (100% authority)
@@ -97,6 +107,7 @@ Search Results:
 ### Implementation Verification
 
 #### HTTP Response Testing
+
 ```bash
 # Canonical domain should return 200 OK
 $ curl -I https://denverbytes.com
@@ -124,6 +135,7 @@ location: https://denverbytes.com/
 ```
 
 #### DNS Resolution Testing
+
 ```bash
 # Apex domain resolves to CloudFront
 $ dig denverbytes.com A +short
@@ -138,6 +150,7 @@ denverbytes.com.
 ```
 
 #### Search Engine Testing
+
 ```bash
 # Google Search Console should show:
 # - Primary domain: denverbytes.com
@@ -170,6 +183,7 @@ denverbytes.com.
 ### Integration with Content Management
 
 #### Internal Linking Strategy
+
 ```html
 <!-- Always use canonical URLs in internal links -->
 <a href="https://denverbytes.com/about">About</a>
@@ -179,6 +193,7 @@ denverbytes.com.
 ```
 
 #### Sitemap Configuration
+
 ```xml
 <!-- sitemap.xml should only contain canonical URLs -->
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
@@ -191,6 +206,7 @@ denverbytes.com.
 ```
 
 #### Canonical Link Tags
+
 ```html
 <!-- Every page should specify its canonical URL -->
 <link rel="canonical" href="https://denverbytes.com/current-page" />
@@ -199,17 +215,20 @@ denverbytes.com.
 ### Monitoring and Maintenance
 
 #### Google Search Console Setup
+
 1. Add both `denverbytes.com` and `www.denverbytes.com` as properties
 2. Set `denverbytes.com` as the preferred domain
 3. Monitor for duplicate content warnings
 4. Track canonical URL indexing patterns
 
 #### Analytics Configuration
+
 1. Configure Google Analytics for canonical domain only
 2. Set up goal funnels using canonical URLs
 3. Monitor traffic patterns for redirect effectiveness
 
 #### Regular Audits
+
 ```bash
 # Monthly verification script
 #!/bin/bash
